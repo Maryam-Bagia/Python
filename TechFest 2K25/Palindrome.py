@@ -16,5 +16,5 @@ else:
 
 str = input("Enter a string :")
 
-print(str[::-1])
-num = int(input("Enter "))
+if((str[::-1]) == str):
+    print("It's a palindrome.")

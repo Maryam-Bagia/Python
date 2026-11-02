@@ -13,6 +13,3 @@ while(count < n):
     t2 = nextTerm
 
     count += 1
-
-
-

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as mpl
-marks = (6.90,7.35,7.77)
+marks = (10.00,9.75,9.86,9.85)
 
 mpl.plot(marks)
 mpl.show()

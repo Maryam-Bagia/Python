@@ -1,11 +1,11 @@
 import PyPDF2
 
 # Open the original PDF
-input_pdf = r"C:\Users\Bagia Maryam Moosaji\Downloads\Cloud Computing.pdf"  # notice the 'r' before string
-output_pdf = 'CC Lab Manual (removed blank pages).pdf'  # name for the new PDF
+input_pdf = r"C:\Users\Bagia Maryam Moosaji\Downloads\ST Lab manual (edited).pdf" # notice the 'r' before string
+output_pdf = 'ST Lab Manual (removed pages).pdf'  # name for the new PDF
 
 # Pages to remove (subtracting 1 because Python indexing starts from 0)
-pages_to_remove = [0, 7, 13, 18, 26, 34, 41, 45, 53, 56, 63, 68, 77]
+pages_to_remove = [67, 68, 69, 77, 78, 86, 87, 93, 106, 107, 108, 116, 117, 118, 126, 127, 134, 150, 151, 152, 165, 177]
 
 reader = PyPDF2.PdfReader(input_pdf)
 writer = PyPDF2.PdfWriter()

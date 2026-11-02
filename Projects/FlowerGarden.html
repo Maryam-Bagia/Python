@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Flower wand</title>
+<style>
+  :root{
+    --sky-top:#2a1a4a; --sky-mid:#4a2c66; --sky-low:#7a3f5e;
+    --gold:#f4c874; --mist:rgba(255,255,255,0.88);
+    --card-bg:rgba(20,12,36,0.72);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--mist); -webkit-user-select:none; user-select:none; touch-action:none; background:#0d0819;
+  }
+  #sky{position:fixed; inset:0; z-index:0;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+  }
+  #video{position:fixed; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1);
+    z-index:1; opacity:0; transition:opacity 500ms ease; background:#000;
+  }
+  #colorGrade{position:fixed; inset:0; z-index:2; pointer-events:none; mix-blend-mode:soft-light;
+    background: linear-gradient(135deg, rgba(122,63,94,0.55) 0%, rgba(42,26,74,0.4) 55%, rgba(244,200,116,0.25) 100%);
+  }
+  #vignette{position:fixed; inset:0; z-index:3; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 42%, rgba(8,5,16,0.6) 100%);
+  }
+  .bokeh{position:fixed; z-index:2; border-radius:50%; filter:blur(18px); pointer-events:none;
+    animation: floatBokeh ease-in-out infinite alternate;
+  }
+  @keyframes floatBokeh{ from{ transform:translate(0,0) scale(1);} to{ transform:translate(var(--bkx,40px), var(--bky,-30px)) scale(1.15);} }
+  .firefly{position:fixed; z-index:3; width:4px; height:4px; border-radius:50%; background:#ffe9a8;
+    box-shadow:0 0 8px 3px rgba(255,233,168,0.7); animation: drift linear infinite;
+  }
+  @keyframes drift{
+    0%{ transform:translate(0,0); opacity:0.2;} 20%{opacity:0.9;} 50%{transform:translate(30px,-40px); opacity:0.5;}
+    80%{opacity:0.9;} 100%{ transform:translate(-20px,-90px); opacity:0.1;}
+  }
+  #garden{position:fixed; inset:0; z-index:4;}
+
+  .flower{position:absolute; transform-origin:50% 92%;
+    animation: bloom 420ms cubic-bezier(.2,1.5,.4,1) both, sway 3.6s ease-in-out infinite 420ms;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+  }
+  .flower svg{width:100%; height:100%; overflow:visible; display:block;}
+  @keyframes bloom{ from{transform:scale(0) rotate(var(--rot,0deg)); opacity:0;} to{transform:scale(1) rotate(var(--rot,0deg)); opacity:1;} }
+  @keyframes sway{ 0%,100%{transform:rotate(calc(var(--rot,0deg) - 4deg));} 50%{transform:rotate(calc(var(--rot,0deg) + 4deg));} }
+
+  .flower.fadeOut{ animation:none; transition: opacity 1400ms ease; opacity:0; }
+
+  @keyframes scatterExpand{
+    0%{ transform: translate(0,0) rotate(var(--rot,0deg)) scale(1); opacity:1; }
+    45%{ transform: translate(var(--dx45), var(--dy45)) rotate(calc(var(--rot,0deg) + var(--spin,0deg) * 0.5)) scale(var(--peak,2.1)); opacity:1; }
+    100%{ transform: translate(var(--dx100), var(--dy100)) rotate(calc(var(--rot,0deg) + var(--spin,0deg))) scale(calc(var(--peak,2.1) * 1.15)); opacity:0; }
+  }
+  .flower.scatter{ animation: scatterExpand var(--fallDur,1300ms) cubic-bezier(.25,.7,.4,1) forwards; }
+
+  @media (prefers-reduced-motion: reduce){ .flower{animation:bloom 1ms both;} .firefly{animation:none;} .bokeh{animation:none;} }
+
+  .petal-burst{position:absolute; width:6px; height:6px; border-radius:50%; z-index:4; pointer-events:none;
+    animation: burst 750ms ease-out forwards;
+  }
+  @keyframes burst{ from{transform:translate(0,0) scale(1); opacity:1;} to{transform:translate(var(--bx),var(--by)) scale(0.3); opacity:0;} }
+
+  #wandTip{position:fixed; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+    background:var(--gold); box-shadow:0 0 22px 8px rgba(244,200,116,0.55);
+    z-index:5; pointer-events:none; opacity:0; transition:opacity 150ms ease, background 200ms ease, box-shadow 200ms ease, transform 120ms ease;
+  }
+  #wandTip.open{ background:#fff; box-shadow:0 0 30px 12px rgba(255,255,255,0.65); transform:scale(1.3); }
+  #wandRing{position:fixed; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+    border:1.5px solid rgba(244,200,116,0.55); z-index:5; pointer-events:none; opacity:0; transition:opacity 200ms ease;
+  }
+
+  #topBar{position:fixed; top:0; left:0; right:0; z-index:6; display:flex; justify-content:space-between; align-items:flex-start;
+    padding:16px; padding-top:max(16px, env(safe-area-inset-top)); pointer-events:none;
+  }
+  #hint{flex:1; text-align:center; font-size:14px; color:rgba(255,255,255,0.85);
+    background:var(--card-bg); backdrop-filter:blur(6px); border-radius:999px; padding:8px 18px; margin:0 auto;
+    display:inline-flex; align-items:center; gap:8px; transition:opacity 700ms ease; max-width:min(90vw,420px);
+  }
+  #hint.faded{opacity:0;}
+  .roundBtn{pointer-events:auto; width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--card-bg); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(6px);
+  }
+  .roundBtn:active{transform:scale(0.94);}
+
+  .overlay{position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+  }
+  .card{max-width:380px; width:100%; text-align:center; background:var(--card-bg); backdrop-filter:blur(8px);
+    border-radius:24px; padding:28px 24px; border:1px solid rgba(255,255,255,0.08);
+  }
+  .card h1{font-size:26px; font-weight:500; margin:0 0 8px; color:#fff;}
+  .card p.sub{font-size:14px; line-height:1.6; color:rgba(255,255,255,0.7); margin:0 0 20px;}
+  .gestureRow{display:flex; gap:14px; margin-bottom:22px;}
+  .gestureCard{flex:1; background:rgba(255,255,255,0.06); border-radius:16px; padding:14px 8px;}
+  .gestureCard svg{width:52px; height:52px;}
+  .gestureCard p{font-size:12.5px; margin:8px 0 0; color:rgba(255,255,255,0.75); line-height:1.4;}
+  .primaryBtn{font-size:16px; font-weight:500; padding:14px 32px; border-radius:999px; border:none;
+    background:var(--gold); color:#3a2600; cursor:pointer; width:100%;
+  }
+  .primaryBtn:active{transform:scale(0.98);}
+  #status{margin-top:14px; font-size:12.5px; color:rgba(255,255,255,0.55); min-height:16px; display:flex; align-items:center; justify-content:center; gap:8px;}
+  #errorBox{display:none; margin-top:14px; font-size:13px; color:#ffd2c4; line-height:1.6; background:rgba(255,120,90,0.12); border-radius:12px; padding:12px;}
+  .spinner{width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.25); border-top-color:#fff; animation:spin 800ms linear infinite;}
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+
+  #tutorialOverlay{z-index:15; background:rgba(15,9,26,0.72); backdrop-filter:blur(4px);}
+
+  .toast{position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); z-index:7;
+    background:var(--card-bg); backdrop-filter:blur(6px); padding:10px 18px; border-radius:999px; font-size:13px;
+    opacity:0; transition:opacity 400ms ease, transform 400ms ease; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="sky"></div>
+<video id="video" playsinline muted autoplay></video>
+<div id="colorGrade"></div>
+<div id="bokehLayer"></div>
+<div id="vignette"></div>
+<div id="fireflyLayer"></div>
+<div id="garden"></div>
+<div id="wandRing"></div>
+<div id="wandTip"></div>
+
+<div id="topBar">
+  <button class="roundBtn" id="soundBtn" aria-label="Toggle sound" title="Toggle sound">&#128264;</button>
+  <div id="hint">Point to plant &middot; open your hand to scatter</div>
+  <button class="roundBtn" id="tutorialBtn" aria-label="Show gesture guide" title="Show gesture guide">?</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- START SCREEN -->
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h1>Flower wand</h1>
+    <p class="sub">Use your hand like a magic wand. Your camera view becomes the garden.</p>
+    <div class="gestureRow">
+      <div class="gestureCard">
+        <svg viewBox="0 0 64 64"><path d="M32 8c-2 0-3.5 1.5-3.5 3.5V32l-6-6c-1.4-1.4-3.6-1.4-5 0-1.4 1.4-1.4 3.6 0 5l12 12c2 2 4.6 3 7.5 3h4c5 0 9-4 9-9V15c0-2-1.5-3.5-3.5-3.5S43 13 43 15v8" fill="none" stroke="#F0997B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="11.5" r="3.5" fill="#F0997B"/></svg>
+        <p>Point one finger to plant a trail of flowers</p>
+      </div>
+      <div class="gestureCard">
+        <svg viewBox="0 0 64 64"><g fill="none" stroke="#ED93B1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 30V14a3 3 0 0 1 6 0v12"/><path d="M24 26V10a3 3 0 0 1 6 0v16"/><path d="M30 26V10a3 3 0 0 1 6 0v16"/><path d="M36 28V14a3 3 0 0 1 6 0v16"/><path d="M18 30c-4 0-6 3-6 7 0 10 8 17 18 17s16-7 16-15V22"/></g></svg>
+        <p>Open your palm to let them bloom outward and vanish</p>
+      </div>
+    </div>
+    <button class="primaryBtn" id="beginBtn">Start planting</button>
+    <div id="status"></div>
+    <div id="errorBox"></div>
+  </div>
+</div>
+
+<!-- TUTORIAL OVERLAY -->
+<div class="overlay" id="tutorialOverlay" style="display:none;">
+  <div class="card">
+    <h1>You're all set</h1>
+    <p class="sub">Hold your hand where the glowing circle shows you. Try it now:</p>
+    <div class="gestureRow">
+      <div class="gestureCard">
+        <svg viewBox="0 0 64 64"><path d="M32 8c-2 0-3.5 1.5-3.5 3.5V32l-6-6c-1.4-1.4-3.6-1.4-5 0-1.4 1.4-1.4 3.6 0 5l12 12c2 2 4.6 3 7.5 3h4c5 0 9-4 9-9V15c0-2-1.5-3.5-3.5-3.5S43 13 43 15v8" fill="none" stroke="#F0997B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="11.5" r="3.5" fill="#F0997B"/></svg>
+        <p>Point to plant</p>
+      </div>
+      <div class="gestureCard">
+        <svg viewBox="0 0 64 64"><g fill="none" stroke="#ED93B1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 30V14a3 3 0 0 1 6 0v12"/><path d="M24 26V10a3 3 0 0 1 6 0v16"/><path d="M30 26V10a3 3 0 0 1 6 0v16"/><path d="M36 28V14a3 3 0 0 1 6 0v16"/><path d="M18 30c-4 0-6 3-6 7 0 10 8 17 18 17s16-7 16-15V22"/></g></svg>
+        <p>Open to scatter</p>
+      </div>
+    </div>
+    <button class="primaryBtn" id="closeTutorialBtn">Got it</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+
+<script>
+(function(){
+  const startScreen = document.getElementById('startScreen');
+  const tutorialOverlay = document.getElementById('tutorialOverlay');
+  const beginBtn = document.getElementById('beginBtn');
+  const closeTutorialBtn = document.getElementById('closeTutorialBtn');
+  const tutorialBtn = document.getElementById('tutorialBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const statusEl = document.getElementById('status');
+  const errorBox = document.getElementById('errorBox');
+  const video = document.getElementById('video');
+  const garden = document.getElementById('garden');
+  const wandTip = document.getElementById('wandTip');
+  const wandRing = document.getElementById('wandRing');
+  const hint = document.getElementById('hint');
+  const toast = document.getElementById('toast');
+  const fireflyLayer = document.getElementById('fireflyLayer');
+  const bokehLayer = document.getElementById('bokehLayer');
+
+  const BOKEH_COLORS = ['#D85A30','#D4537E','#7F77DD','#F4C874'];
+  for(let i=0;i<7;i++){
+    const b = document.createElement('div');
+    b.className = 'bokeh';
+    const size = 70 + Math.random()*110;
+    b.style.width = size+'px'; b.style.height = size+'px';
+    b.style.left = (Math.random()*100)+'vw';
+    b.style.top = (Math.random()*100)+'vh';
+    b.style.background = BOKEH_COLORS[i % BOKEH_COLORS.length];
+    b.style.opacity = 0.16 + Math.random()*0.12;
+    b.style.setProperty('--bkx', (Math.random()*80-40)+'px');
+    b.style.setProperty('--bky', (Math.random()*80-40)+'px');
+    b.style.animationDuration = (7+Math.random()*8)+'s';
+    bokehLayer.appendChild(b);
+  }
+  for(let i=0;i<16;i++){
+    const f = document.createElement('div');
+    f.className = 'firefly';
+    f.style.left = (Math.random()*100)+'vw';
+    f.style.top = (20+Math.random()*60)+'vh';
+    f.style.animationDuration = (5+Math.random()*6)+'s';
+    f.style.animationDelay = (Math.random()*5)+'s';
+    fireflyLayer.appendChild(f);
+  }
+
+  let soundOn = true;
+  let audioCtx = null;
+  function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } }
+  function playTone(freq, duration, type, gainPeak){
+    if(!soundOn) return;
+    ensureAudio();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(gainPeak, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  }
+  function plantSound(){ playTone(650+Math.random()*350, 0.28, 'sine', 0.09); }
+  function scatterSound(){
+    if(!soundOn) return; ensureAudio();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type='triangle'; osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime+0.5);
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.11, audioCtx.currentTime+0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.6);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime+0.6);
+  }
+  soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.innerHTML = soundOn ? '&#128264;' : '&#128263;';
+    if(soundOn) ensureAudio();
+  });
+
+  const FLOWER_TYPES = [
+    {petal:'#F0997B', petalDark:'#D85A30', center:'#FAC775'},
+    {petal:'#ED93B1', petalDark:'#D4537E', center:'#FAEEDA'},
+    {petal:'#AFA9EC', petalDark:'#7F77DD', center:'#FAC775'},
+    {petal:'#F5C4B3', petalDark:'#993C1D', center:'#EF9F27'},
+    {petal:'#F4C0D1', petalDark:'#993556', center:'#FAC775'},
+    {petal:'#FAC775', petalDark:'#BA7517', center:'#F0997B'},
+    {petal:'#9FE1CB', petalDark:'#0F6E56', center:'#FAEEDA'}
+  ];
+
+  function flowerSVG(t, petalCount){
+    const petals = [];
+    const step = 360/petalCount;
+    for(let i=0;i<petalCount;i++){
+      const angle = i*step;
+      petals.push('<ellipse cx="23" cy="9" rx="6.5" ry="13" fill="'+t.petal+'" stroke="'+t.petalDark+'" stroke-width="0.6" transform="rotate('+angle+' 23 23)"/>');
+    }
+    return '<svg viewBox="0 0 46 46">'+petals.join('')+'<circle cx="23" cy="23" r="6.5" fill="'+t.center+'"/></svg>';
+  }
+
+  let plantedCount = 0;
+  let lastTypeIdx = -1;
+  let lastPlant = 0;
+  function plantFlower(x,y){
+    const now = performance.now();
+    if(now - lastPlant < 130) return;
+    lastPlant = now;
+    let idx = Math.floor(Math.random()*FLOWER_TYPES.length);
+    if(idx === lastTypeIdx) idx = (idx+1+Math.floor(Math.random()*(FLOWER_TYPES.length-1))) % FLOWER_TYPES.length;
+    lastTypeIdx = idx;
+    const t = FLOWER_TYPES[idx];
+    const petalCount = 5 + Math.floor(Math.random()*3);
+    const scale = 0.75 + Math.random()*0.7;
+    const size = 46*scale;
+    const jx = x + (Math.random()*20-10);
+    const jy = y + (Math.random()*20-10);
+    const el = document.createElement('div');
+    el.className = 'flower';
+    el.style.left = (jx - size/2)+'px';
+    el.style.top = (jy - size)+'px';
+    el.style.width = size+'px';
+    el.style.height = size+'px';
+    el.style.setProperty('--rot', (Math.random()*24-12)+'deg');
+    el.innerHTML = flowerSVG(t, petalCount);
+    garden.appendChild(el);
+    if(garden.children.length > 140) garden.removeChild(garden.firstChild);
+    plantSound();
+    plantedCount++;
+    if(plantedCount === 8) showToast('Nice! Now try opening your whole hand ✋');
+
+    const lifetime = 12000 + Math.random()*6000;
+    setTimeout(()=>{
+      if(el.parentNode && !el.classList.contains('scatter')){
+        el.classList.add('fadeOut');
+        setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 1450);
+      }
+    }, lifetime);
+  }
+
+  let lastScatter = 0;
+  function scatterAll(cx,cy){
+    const now = performance.now();
+    if(now - lastScatter < 1200) return;
+    const flowers = garden.querySelectorAll('.flower:not(.scatter)');
+    if(flowers.length === 0) return;
+    lastScatter = now;
+    scatterSound();
+    flowers.forEach(f=>{
+      const rect = f.getBoundingClientRect();
+      const fx = rect.left + rect.width/2, fy = rect.top + rect.height/2;
+      const angle = Math.atan2(fy - cy, fx - cx) || (Math.random()*Math.PI*2);
+      const midDist = 90 + Math.random()*70;
+      const endDist = midDist + 90 + Math.random()*140;
+      const dx45 = Math.cos(angle)*midDist;
+      const dy45 = Math.sin(angle)*midDist - 10;
+      const dx100 = Math.cos(angle)*endDist;
+      const dy100 = Math.sin(angle)*endDist + 40 + Math.random()*40;
+      const spin = (Math.random()>0.5?1:-1) * (140 + Math.random()*200);
+      const peak = 1.8 + Math.random()*0.6;
+      const fallDur = 1000 + Math.random()*500;
+      f.style.setProperty('--dx45', dx45+'px');
+      f.style.setProperty('--dy45', dy45+'px');
+      f.style.setProperty('--dx100', dx100+'px');
+      f.style.setProperty('--dy100', dy100+'px');
+      f.style.setProperty('--spin', spin+'deg');
+      f.style.setProperty('--peak', peak);
+      f.style.setProperty('--fallDur', fallDur+'ms');
+      f.classList.add('scatter');
+      setTimeout(()=>{ if(f.parentNode) f.parentNode.removeChild(f); }, fallDur + 100);
+    });
+    for(let i=0;i<22;i++){
+      const p = document.createElement('div');
+      p.className = 'petal-burst';
+      const angle = Math.random()*Math.PI*2, dist = 60+Math.random()*140;
+      p.style.left = cx+'px'; p.style.top = cy+'px';
+      p.style.background = FLOWER_TYPES[Math.floor(Math.random()*FLOWER_TYPES.length)].petal;
+      p.style.setProperty('--bx', (Math.cos(angle)*dist)+'px');
+      p.style.setProperty('--by', (Math.sin(angle)*dist)+'px');
+      garden.appendChild(p);
+      setTimeout(()=>{ if(p.parentNode) p.parentNode.removeChild(p); }, 780);
+    }
+  }
+
+  let toastTimer = null;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toast.classList.remove('show'), 3200);
+  }
+
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function fingerExtended(tip,pip,wrist){ return dist(tip,wrist) > dist(pip,wrist)*1.08; }
+
+  function mapToScreen(nx, ny){
+    const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+    const iw = window.innerWidth, ih = window.innerHeight;
+    const scale = Math.max(iw/vw, ih/vh);
+    const scaledW = vw*scale, scaledH = vh*scale;
+    const offsetX = (iw - scaledW)/2, offsetY = (ih - scaledH)/2;
+    const mirroredX = vw - (nx*vw);
+    return { x: offsetX + mirroredX*scale, y: offsetY + ny*vh*scale };
+  }
+
+  let noHandTimer = null;
+  function resetNoHandTimer(){
+    clearTimeout(noHandTimer);
+    noHandTimer = setTimeout(()=> showToast('Move your hand into view of the camera'), 5000);
+  }
+
+  function onResults(results){
+    if(!results.multiHandLandmarks || results.multiHandLandmarks.length === 0){
+      wandTip.style.opacity = 0;
+      wandRing.style.opacity = 0;
+      return;
+    }
+    clearTimeout(noHandTimer); resetNoHandTimer();
+
+    const lm = results.multiHandLandmarks[0];
+    const wrist = lm[0];
+    const idxExt = fingerExtended(lm[8], lm[6], wrist);
+    const midExt = fingerExtended(lm[12], lm[10], wrist);
+    const ringExt = fingerExtended(lm[16], lm[14], wrist);
+    const pinkyExt = fingerExtended(lm[20], lm[18], wrist);
+
+    const p = mapToScreen(lm[8].x, lm[8].y);
+    const x = p.x, y = p.y;
+
+    wandTip.style.opacity = 1;
+    wandRing.style.opacity = 1;
+    wandRing.style.left = x+'px'; wandRing.style.top = y+'px';
+    wandTip.style.left = x+'px'; wandTip.style.top = y+'px';
+
+    if(idxExt && midExt && ringExt && pinkyExt){
+      wandTip.classList.add('open');
+      scatterAll(x,y);
+    } else if(idxExt && !midExt && !ringExt && !pinkyExt){
+      wandTip.classList.remove('open');
+      plantFlower(x,y);
+    } else {
+      wandTip.classList.remove('open');
+    }
+  }
+
+  async function start(){
+    beginBtn.disabled = true;
+    statusEl.innerHTML = '<span class="spinner"></span> Requesting camera…';
+    errorBox.style.display = 'none';
+    try{
+      if(typeof Hands === 'undefined' || typeof Camera === 'undefined'){
+        throw new Error("Hand tracking couldn't load. Check your internet connection and reload the page.");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
+      video.srcObject = stream;
+      await video.play();
+      video.style.opacity = 1;
+
+      statusEl.innerHTML = '<span class="spinner"></span> Getting ready…';
+      const hands = new Hands({ locateFile:(f)=> 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/'+f });
+      hands.setOptions({ maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.5 });
+      hands.onResults(onResults);
+
+      const camera = new Camera(video, {
+        onFrame: async ()=>{ await hands.send({image: video}); },
+        width:640, height:480
+      });
+      camera.start();
+
+      startScreen.style.display = 'none';
+      tutorialOverlay.style.display = 'flex';
+      resetNoHandTimer();
+      setTimeout(()=> hint.classList.add('faded'), 8000);
+    }catch(err){
+      statusEl.textContent = '';
+      errorBox.style.display = 'block';
+      errorBox.textContent = (err && err.message) ? err.message : "Couldn't access the camera. Check your browser's camera permission and try again.";
+      beginBtn.disabled = false;
+    }
+  }
+
+  beginBtn.addEventListener('click', start);
+  closeTutorialBtn.addEventListener('click', ()=>{ tutorialOverlay.style.display = 'none'; });
+  tutorialBtn.addEventListener('click', ()=>{ tutorialOverlay.style.display = 'flex'; });
+})();
+</script>
+</body>
+</html>
